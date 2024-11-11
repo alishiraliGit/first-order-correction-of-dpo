@@ -92,7 +92,7 @@ if __name__ == '__main__':
     cnt_sa = torch.zeros((env.n_state, env.n_action))
     ac_dist = torch.distributions.Categorical(probs=torch.ones((env.n_action,)))
 
-    for _ in range(100000):
+    for _ in range(10000):
         a = ac_dist.sample()
         s, r, _ = env.step(a, fix_state_between_actions=True)
         s, r = s[0], r[0]

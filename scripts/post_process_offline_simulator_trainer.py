@@ -8,19 +8,19 @@ from utils.load_and_save_utils import load_class
 
 if __name__ == '__main__':
     # ===== Settings =====
-    opt_shifts = [-1, 1]
+    opt_shifts = [-2, 0, 2]
     decay_rate = 0.5
-    correction_var = 10
+    correction_var = 0.
 
     exp_name = f'offline_size100000_' \
                f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
                f'decay{"%g" % decay_rate}_' \
-               f'corrected{"%g" % correction_var}'
+               f'estvarcorrected{"%g" % correction_var}'
 
     log_dir = os.path.join('..', 'data', exp_name)
     figs_dir = os.path.join('..', 'figs')
 
-    save_figs = True
+    save_figs = False
 
     # ===== Load =====
     solver = load_class(log_dir + '.solvers').load(log_dir)

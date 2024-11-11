@@ -5,7 +5,7 @@ from preferencemodels.bradley_terry import BradleyTerry
 from policies.mlp_policy import DiscreteMLPPolicy
 from policies.ref_policy import UniformPolicy
 from solvers.dpo import DPO
-from solvers.corrected_dpo import CorrectedDPO
+from solvers.corrected_dpo import EstVarCorrectedDPO
 from trainers.simulator_trainer import OfflineSimulatorTrainer
 from utils.logger import Logger
 from utils.pytorch_utils import init_gpu
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     env = DiscreteMultiShiftedProximityEnv(
         n_state=9,
         n_action=9,
-        opt_shifts=[-1, 1],
+        opt_shifts=[-2, 0, 2],
         decay_rate=0.5,
     )
 
@@ -38,19 +38,21 @@ if __name__ == '__main__':
     ref_pi = UniformPolicy(n_action=env.n_action)
 
     # Solver
-    solver = CorrectedDPO(
+    solver = EstVarCorrectedDPO(
         policy=pi,
         ref_policy=ref_pi,
         beta=1.,
         lr=1e-3,
-        var=10,
+        var_multiplier=0.3,
+        start_correction_after_step=5000,
+        joint_likelihood_params={'n_layer': 3, 'size': 15},
     )
 
     # Logger
     exp_name = f'offline_size100000_' \
                f'shifts{"_".join(["%g" % s for s in env.opt_shifts])}_' \
                f'decay{"%g" % env.decay_rate}_' \
-               f'corrected{"%g" % solver.var}'
+               f'estvarcorrected{"%g" % solver.var_multiplier}'
 
     logger = Logger(
         log_dir=os.path.join('..', 'data', exp_name),

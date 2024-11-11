@@ -8,16 +8,19 @@ from utils.load_and_save_utils import load_class
 
 if __name__ == '__main__':
     # ===== Settings =====
-    opt_shifts = [-1, 1]
+    opt_shifts = [-2, 0, 2]
     decay_rate = 0.5
-    correction_vars = [0, 1, 3, 5]
+    # correction_vars = [0, 1, 3, 5]
+    correction_vars = [0, 0.1, 0.2]
 
     common_exp_name = \
         f'offline_size100000_' \
         f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
         f'decay{"%g" % decay_rate}'
 
-    exp_names = [common_exp_name + f'_corrected{"%g" % c_var}' for c_var in correction_vars]
+    postfix = 'estvarcorrected'
+
+    exp_names = [common_exp_name + '_' + postfix + f'{"%g" % c_var}' for c_var in correction_vars]
 
     log_dirs = [os.path.join('..', 'data', exp_name) for exp_name in exp_names]
     figs_dir = os.path.join('..', 'figs')
@@ -64,12 +67,12 @@ if __name__ == '__main__':
         legends.append(f'DPO(correction={c_var})')
 
     plt.legend(legends)
-    plt.ylabel(r'$\pi$')
-    plt.xlabel('action')
+    plt.ylabel(r'$\pi(y - x)$')
+    plt.xlabel(r'$y - x$')
 
     plt.tight_layout()
 
     plt.show()
 
     if save_figs:
-        plt.savefig(os.path.join(figs_dir, f'aligned_policy_comparison_{common_exp_name}.pdf'))
+        plt.savefig(os.path.join(figs_dir, f'aligned_policy_comparison_{common_exp_name}_{postfix}.pdf'))

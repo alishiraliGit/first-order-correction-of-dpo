@@ -18,19 +18,17 @@ class DPO(BaseSolver):
         self.beta = beta
 
         self.lr = lr
-        self.optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
+        self.optimizer = torch.optim.Adam(policy.parameters(), lr=self.lr)
 
-    def update(
+    def calc_likelihood(
             self,
             states_n: torch.Tensor,
             actions_1_n: torch.Tensor,
             actions_2_n: torch.Tensor,
             prefs_n: torch.Tensor,
-            us_n: torch.Tensor,
     ):
         n = len(states_n)
 
-        # Calc. loss
         dist_na = self.policy(states_n)
         ref_dist_na = self.ref_policy(states_n)
 
@@ -44,9 +42,25 @@ class DPO(BaseSolver):
         ref_log_probs_w_n = ref_dist_na.log_prob(actions_w_n)
         ref_log_probs_l_n = ref_dist_na.log_prob(actions_l_n)
 
-        loss = -torch.log(torch.sigmoid(
+        sigmoid_n = torch.sigmoid(
             self.beta*(log_probs_w_n - log_probs_l_n) - self.beta*(ref_log_probs_w_n - ref_log_probs_l_n)
-        )).mean()
+        )
+
+        return sigmoid_n
+
+    def update(
+            self,
+            states_n: torch.Tensor,
+            actions_1_n: torch.Tensor,
+            actions_2_n: torch.Tensor,
+            prefs_n: torch.Tensor,
+            us_n: torch.Tensor,
+    ):
+        # Calc. likelihood
+        sigmoid_n = self.calc_likelihood(states_n, actions_1_n, actions_2_n, prefs_n)
+
+        # Calc. loss
+        loss = -torch.log(sigmoid_n).mean()
 
         # Step the optimizer
         self.optimizer.zero_grad()
