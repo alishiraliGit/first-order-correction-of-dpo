@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorboardX import SummaryWriter
 
 
@@ -19,3 +20,24 @@ class Logger:
 
     def flush(self):
         self.summ_writer.flush()
+
+
+def get_section_tags(file):
+    all_tags = set()
+    for e in tf.compat.v1.train.summary_iterator(file):
+        for v in e.summary.value:
+            all_tags.add(v.tag)
+
+    return all_tags
+
+
+def get_section_results(file, tags):
+    data = {tag: [] for tag in tags}
+    print(data.keys())
+    for e in tf.compat.v1.train.summary_iterator(file):
+        for v in e.summary.value:
+            for tag in tags:
+                if v.tag == tag:
+                    data[tag].append(v.simple_value)
+
+    return data

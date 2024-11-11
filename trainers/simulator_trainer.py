@@ -1,4 +1,5 @@
 import torch
+from typing import Optional
 
 from envs.base_env import BaseEnv
 from preferencemodels.base_preference import BasePreference
@@ -13,9 +14,9 @@ class OfflineSimulatorTrainer(BaseSimulatorTrainer):
             env: BaseEnv,
             preference_model: BasePreference,
             solver: BaseSolver,
-            logger: Logger,
             dataset_size: int,
             batch_size: int,
+            logger: Optional[Logger] = None,
     ):
         super().__init__(env, preference_model, solver, logger)
 
@@ -25,8 +26,6 @@ class OfflineSimulatorTrainer(BaseSimulatorTrainer):
         self.dataset = self.sample_dataset()
 
     def sample_dataset(self):
-        print(f'sampling a dataset of size {self.dataset_size}')
-
         states_n, actions_1_n, actions_2_n, prefs_n, us_n = self.sample(self.solver.ref_policy, self.dataset_size)
 
         dataset = {

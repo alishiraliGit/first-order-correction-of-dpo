@@ -8,9 +8,9 @@ from utils.load_and_save_utils import load_class
 
 if __name__ == '__main__':
     # ===== Settings =====
-    opt_shifts = [-2, 0, 2]
+    opt_shifts = [-1, 1]
     decay_rate = 0.5
-    correction_var = 0.
+    correction_var = 0.02
 
     exp_name = f'offline_size100000_' \
                f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
@@ -43,10 +43,10 @@ if __name__ == '__main__':
 
     plt.tight_layout()
 
-    plt.show()
-
     if save_figs:
         plt.savefig(os.path.join(figs_dir, f'visualized_policy_{exp_name}.pdf'))
+
+    plt.show()
 
     # Vector
     plt.figure(figsize=(5, 4))
@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
     plt.tight_layout()
 
-    plt.show()
-
     if save_figs:
         plt.savefig(os.path.join(figs_dir, f'aligned_policy_{exp_name}.pdf'))
+
+    plt.show()

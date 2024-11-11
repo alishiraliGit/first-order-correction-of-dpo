@@ -1,6 +1,7 @@
 import abc
 import torch
 from tqdm import tqdm
+from typing import Optional
 
 from envs.base_env import BaseEnv
 from preferencemodels.base_preference import BasePreference
@@ -15,7 +16,7 @@ class BaseSimulatorTrainer(abc.ABC):
             env: BaseEnv,
             preference_model: BasePreference,
             solver: BaseSolver,
-            logger: Logger,
+            logger: Optional[Logger] = None,
     ):
         self.env = env
         self.preference_model = preference_model
@@ -29,7 +30,7 @@ class BaseSimulatorTrainer(abc.ABC):
         prefs_n = torch.zeros((n,), dtype=torch.long)
         us_n = torch.zeros((n,), dtype=torch.float)
 
-        for i in range(n):
+        for i in tqdm(range(n), desc='sampling'):
             states = torch.tensor([self.env.state, self.env.state])
 
             # Get two actions from the ref_policy
@@ -60,12 +61,12 @@ class BaseSimulatorTrainer(abc.ABC):
 
             # Log
             for k, v in training_log.items():
-                self.logger.log(k, v, step)
+                if self.logger is not None:
+                    self.logger.log(k, v, step)
 
-        self.logger.flush()
-
-        # Save
-        self.save(self.logger.log_dir)
+        if self.logger is not None:
+            self.logger.flush()
+            self.save(self.logger.log_dir)
 
     def save(self, save_path: str):
         self.solver.save(save_path)

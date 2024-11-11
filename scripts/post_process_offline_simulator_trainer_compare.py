@@ -8,10 +8,10 @@ from utils.load_and_save_utils import load_class
 
 if __name__ == '__main__':
     # ===== Settings =====
-    opt_shifts = [-2, 0, 2]
+    opt_shifts = [-1, 1]
     decay_rate = 0.5
     # correction_vars = [0, 1, 3, 5]
-    correction_vars = [0, 0.1, 0.2]
+    correction_vars = [0, 0.01, 0.02, 0.03]
 
     common_exp_name = \
         f'offline_size100000_' \
@@ -66,13 +66,13 @@ if __name__ == '__main__':
 
         legends.append(f'DPO(correction={c_var})')
 
-    plt.legend(legends)
+    plt.legend(legends, loc='lower center')
     plt.ylabel(r'$\pi(y - x)$')
     plt.xlabel(r'$y - x$')
 
     plt.tight_layout()
 
-    plt.show()
-
     if save_figs:
         plt.savefig(os.path.join(figs_dir, f'aligned_policy_comparison_{common_exp_name}_{postfix}.pdf'))
+
+    plt.show()
