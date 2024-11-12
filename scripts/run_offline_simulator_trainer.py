@@ -42,9 +42,10 @@ if __name__ == '__main__':
         ref_policy=ref_pi,
         beta=1.,
         lr=1e-3,
-        var_multiplier=0.05,
-        start_correction_after_step=10000,
-        joint_likelihood_params={'n_layer': 3, 'size': 15, 'latent_dim': len(env.opt_shifts)},
+        var_multiplier=0.03,
+        start_correction_after_step=9000,
+        joint_likelihood_params={'n_layer': 2, 'size': 15, 'latent_dim': len(set(env.opt_shifts))},
+        # joint_likelihood_params={'n_layer': 2, 'size': 15},
         use_general_joint_likelihood_mdl=False,
     )
 
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     #     ref_policy=ref_pi,
     #     beta=1.,
     #     lr=1e-3,
-    #     var_multiplier=0.2,
+    #     var_multiplier=0.,
     # )
 
     # Logger
@@ -78,4 +79,4 @@ if __name__ == '__main__':
     )
 
     # ===== Train =====
-    trainer.train(steps=15000)
+    trainer.train(steps=10000)

@@ -3,7 +3,7 @@ import importlib
 
 
 def append_class_to_path(path, cls):
-    return f'{path}.{cls.__module__}.{cls.__name__}'
+    return f'{path}/{cls.__module__}.{cls.__name__}'
 
 
 def load_class(path):

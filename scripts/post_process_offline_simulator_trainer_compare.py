@@ -10,7 +10,6 @@ if __name__ == '__main__':
     # ===== Settings =====
     opt_shifts = [-1, 1]
     decay_rate = 0.5
-    # correction_vars = [0, 1, 3, 5]
     correction_vars = [0, 0.01, 0.02, 0.03]
 
     common_exp_name = \
@@ -28,7 +27,7 @@ if __name__ == '__main__':
     save_figs = True
 
     # ===== Load =====
-    solvers = [load_class(log_dir + '.solvers').load(log_dir) for log_dir in log_dirs]
+    solvers = [load_class(os.path.join(log_dir, 'solvers')).load(log_dir) for log_dir in log_dirs]
 
     n_state = solvers[0].policy.n_state
     n_action = solvers[0].policy.n_action
@@ -64,7 +63,7 @@ if __name__ == '__main__':
 
         plt.plot(d, aligned_a, color=cl(i_c))
 
-        legends.append(f'DPO(correction={c_var})')
+        legends.append(r'DPO($\alpha$=%g)' % c_var)
 
     plt.legend(legends, loc='lower center')
     plt.ylabel(r'$\pi(y - x)$')
