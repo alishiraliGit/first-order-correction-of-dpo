@@ -20,7 +20,7 @@ if __name__ == '__main__':
     log_dir = os.path.join('..', 'data', exp_name)
     figs_dir = os.path.join('..', 'figs')
 
-    save_figs = True
+    save_figs = False
 
     # ===== Load =====
     solver = load_class(os.path.join(log_dir, 'solvers')).load(log_dir)

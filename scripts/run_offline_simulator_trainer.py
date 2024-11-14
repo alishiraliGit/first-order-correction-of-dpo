@@ -19,7 +19,7 @@ if __name__ == '__main__':
     env = DiscreteMultiShiftedProximityEnv(
         n_state=9,
         n_action=9,
-        opt_shifts=[-2, 0, 2],
+        opt_shifts=[-1, 1],
         decay_rate=0.5,
     )
 
@@ -42,11 +42,14 @@ if __name__ == '__main__':
         ref_policy=ref_pi,
         beta=1.,
         lr=1e-3,
-        var_multiplier=0.03,
+        var_multiplier=0.,
         start_correction_after_step=9000,
         joint_likelihood_params={'n_layer': 2, 'size': 15, 'latent_dim': len(set(env.opt_shifts))},
-        # joint_likelihood_params={'n_layer': 2, 'size': 15},
+        joint_likelihood_lr=1e-1,
         use_general_joint_likelihood_mdl=False,
+        correction_method=4,
+        loss_fn='ce',
+        latent_disc_loss_weight=0.,
     )
 
     # solver = CorrectedDPO(
@@ -61,7 +64,7 @@ if __name__ == '__main__':
     exp_name = f'offline_size100000_' \
                f'shifts{"_".join(["%g" % s for s in env.opt_shifts])}_' \
                f'decay{"%g" % env.decay_rate}_' \
-               f'estvarcorrected{"%g" % solver.var_multiplier}'
+               f'{solver.loss_fn}estvar{str(solver.correction_method)}corrected{"%g" % solver.var_multiplier}'
 
     logger = Logger(
         log_dir=os.path.join('..', 'data', exp_name),
@@ -75,7 +78,7 @@ if __name__ == '__main__':
         solver=solver,
         logger=logger,
         dataset_size=100000,
-        batch_size=512,
+        batch_size=1024,  # 4096,
     )
 
     # ===== Train =====

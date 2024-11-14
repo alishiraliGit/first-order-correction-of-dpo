@@ -10,14 +10,14 @@ if __name__ == '__main__':
     # ===== Settings =====
     opt_shifts = [-1, 1]
     decay_rate = 0.5
-    correction_vars = [0, 0.01, 0.02, 0.03]
+    correction_vars = [0, 1, 3, 5]
 
     common_exp_name = \
         f'offline_size100000_' \
         f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
         f'decay{"%g" % decay_rate}'
 
-    postfix = 'estvarcorrected'
+    postfix = 'ceestvar4corrected'
 
     exp_names = [common_exp_name + '_' + postfix + f'{"%g" % c_var}' for c_var in correction_vars]
 

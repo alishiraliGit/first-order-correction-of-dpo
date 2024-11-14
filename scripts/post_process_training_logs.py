@@ -2,8 +2,28 @@ import os
 import glob
 from matplotlib import pyplot as plt
 from scipy.ndimage import gaussian_filter1d
+import tensorflow as tf
 
-from utils.logger import get_section_tags, get_section_results
+
+def get_section_tags(file):
+    all_tags = set()
+    for e in tf.compat.v1.train.summary_iterator(file):
+        for v in e.summary.value:
+            all_tags.add(v.tag)
+
+    return all_tags
+
+
+def get_section_results(file, tags):
+    data = {tag: [] for tag in tags}
+    print(data.keys())
+    for e in tf.compat.v1.train.summary_iterator(file):
+        for v in e.summary.value:
+            for tag in tags:
+                if v.tag == tag:
+                    data[tag].append(v.simple_value)
+
+    return data
 
 
 if __name__ == '__main__':
@@ -15,7 +35,7 @@ if __name__ == '__main__':
     exp_name = f'offline_size100000_' \
                f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
                f'decay{"%g" % decay_rate}_' \
-               f'estvarcorrected{"%g" % correction_var}'
+               f'ceestvar4corrected{"%g" % correction_var}'
 
     log_dir = os.path.join('..', 'data', exp_name)
 

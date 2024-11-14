@@ -19,7 +19,7 @@ if __name__ == '__main__':
     exp_name = f'offline_size100000_' \
                f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
                f'decay{"%g" % decay_rate}_' \
-               f'estvarcorrected{"%g" % correction_var}'
+               f'ceestvar4corrected{"%g" % correction_var}'
 
     log_dir = os.path.join('..', 'data', exp_name)
     figs_dir = os.path.join('..', 'figs')
@@ -42,7 +42,7 @@ if __name__ == '__main__':
                 probs_saa[state, action_1, action_2] = solver.joint_likelihood_mdl(
                     torch.tensor([state]), torch.tensor([action_1]), torch.tensor([action_2]),
                     torch.tensor([state]), torch.tensor([action_1]), torch.tensor([action_2]),
-                ).detach().numpy()
+                )[0].detach().numpy()
 
     for state in range(n_state):
         for action_1 in range(n_action):

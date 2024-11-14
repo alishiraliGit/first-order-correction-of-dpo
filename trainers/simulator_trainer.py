@@ -25,6 +25,9 @@ class OfflineSimulatorTrainer(BaseSimulatorTrainer):
 
         self.dataset = self.sample_dataset()
 
+        self.random_indices = torch.randperm(self.dataset_size)
+        self.dataset_head = 0
+
     def sample_dataset(self):
         states_n, actions_1_n, actions_2_n, prefs_n, us_n = self.sample(self.solver.ref_policy, self.dataset_size)
 
@@ -39,7 +42,11 @@ class OfflineSimulatorTrainer(BaseSimulatorTrainer):
         return dataset
 
     def sample_batch(self):
-        indices = torch.randperm(self.dataset_size)[:self.batch_size]
+        self.dataset_head = self.dataset_head % (self.dataset_size - 1)
+
+        indices = self.random_indices[self.dataset_head: (self.dataset_head + self.batch_size)]
+
+        self.dataset_head += len(indices)
 
         return \
             self.dataset['states'][indices], \
