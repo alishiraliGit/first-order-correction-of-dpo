@@ -10,7 +10,7 @@ if __name__ == '__main__':
     # ===== Settings =====
     opt_shifts = [-1, 1]
     decay_rate = 0.5
-    correction_vars = [0, 1, 3, 5]
+    correction_vars = [0, 1, 2, 3]
 
     common_exp_name = \
         f'offline_size100000_' \

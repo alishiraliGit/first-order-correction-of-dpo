@@ -42,11 +42,15 @@ class OfflineSimulatorTrainer(BaseSimulatorTrainer):
         return dataset
 
     def sample_batch(self):
-        self.dataset_head = self.dataset_head % (self.dataset_size - 1)
+        self.dataset_head = self.dataset_head
 
         indices = self.random_indices[self.dataset_head: (self.dataset_head + self.batch_size)]
 
         self.dataset_head += len(indices)
+
+        if self.dataset_head >= self.dataset_size - self.batch_size - 1:
+            self.dataset_head = 0
+            self.random_indices = torch.randperm(self.dataset_size)
 
         return \
             self.dataset['states'][indices], \

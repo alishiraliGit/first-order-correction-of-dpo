@@ -15,7 +15,7 @@ if __name__ == '__main__':
     exp_name = f'offline_size100000_' \
                f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
                f'decay{"%g" % decay_rate}_' \
-               f'estvarcorrected{"%g" % correction_var}'
+               f'ceestvar4corrected{"%g" % correction_var}'
 
     log_dir = os.path.join('..', 'data', exp_name)
     figs_dir = os.path.join('..', 'figs')

@@ -7,7 +7,6 @@ from policies.mlp_policy import DiscreteMLPPolicy
 from solvers.dpo import DPO
 from utils.load_and_save_utils import append_class_to_path, load_class
 from utils import pytorch_utils as ptu
-from utils import math_ops
 
 
 class FixedVarCorrectedDPO(DPO):
@@ -205,6 +204,8 @@ class EstVarCorrectedDPO(DPO):
             joint_likelihood_mdl: Optional[nn.Module] = None,
             joint_likelihood_params: Optional[dict] = None,
             joint_likelihood_lr: Optional[float] = None,
+            joint_likelihood_lr_scheduler_step_size: int = 1000,
+            joint_likelihood_lr_scheduler_gamma: float = 1,
             use_general_joint_likelihood_mdl: bool = True,
             correction_method: int = 1,
             loss_fn: str = 'mse',
@@ -224,12 +225,14 @@ class EstVarCorrectedDPO(DPO):
 
         self.joint_likelihood_params = joint_likelihood_params
         self.joint_likelihood_lr = joint_likelihood_lr or self.lr
+        self.joint_likelihood_lr_scheduler_gamma = joint_likelihood_lr_scheduler_gamma
+        self.joint_likelihood_lr_scheduler_step_size = joint_likelihood_lr_scheduler_step_size
         self.use_general_joint_likelihood_mdl = use_general_joint_likelihood_mdl
         if joint_likelihood_mdl is None:
             if self.use_general_joint_likelihood_mdl:
                 joint_likelihood_cls = GeneralJointLikelihoodModel
             else:
-                joint_likelihood_cls = SpecialJointLikelihoodModel
+                joint_likelihood_cls = VerySpecialJointLikelihoodModel
 
             self.joint_likelihood_mdl = joint_likelihood_cls(
                 self.n_state, self.n_action, **self.joint_likelihood_params
@@ -242,7 +245,9 @@ class EstVarCorrectedDPO(DPO):
             self.joint_likelihood_mdl.parameters(), lr=self.joint_likelihood_lr
         )
         self.joint_likelihood_scheduler = torch.optim.lr_scheduler.StepLR(
-            self.joint_likelihood_optimizer, step_size=1000, gamma=0.5
+            self.joint_likelihood_optimizer,
+            step_size=self.joint_likelihood_lr_scheduler_step_size,
+            gamma=self.joint_likelihood_lr_scheduler_gamma,
         )
 
         self.correction_method = correction_method
@@ -423,6 +428,8 @@ class EstVarCorrectedDPO(DPO):
                     'start_correction_after_step': self.start_correction_after_step,
                     'joint_likelihood_params': self.joint_likelihood_params,
                     'joint_likelihood_lr': self.joint_likelihood_lr,
+                    'joint_likelihood_lr_scheduler_gamma': self.joint_likelihood_lr_scheduler_gamma,
+                    'joint_likelihood_lr_scheduler_step_size': self.joint_likelihood_lr_scheduler_step_size,
                     'use_general_joint_likelihood_mdl': self.use_general_joint_likelihood_mdl,
                     'correction_method': self.correction_method,
                     'loss_fn': self.loss_fn,
@@ -624,7 +631,7 @@ class SpecialEncoderJointLikelihoodModel(nn.Module):
         return prob_n, prob_nl
 
 
-class VerySpecialJointLikelihoodModel(nn.Module):
+class VeryVerySpecialJointLikelihoodModel(nn.Module):
     def __init__(self, n_state: int, n_action: int, n_layer: int, size: int, latent_dim: int):
         super().__init__()
 
@@ -640,6 +647,10 @@ class VerySpecialJointLikelihoodModel(nn.Module):
         self.pref_mdl = nn.functional.sigmoid
 
         self.latent_logits = nn.Parameter(torch.zeros((self.latent_dim,), device=ptu.device), requires_grad=True)
+
+    @staticmethod
+    def calc_latent_disc_loss():
+        return 0.
 
     def forward(
             self,
@@ -660,6 +671,56 @@ class VerySpecialJointLikelihoodModel(nn.Module):
 
             rew_1_r_n = self.rew_mdl[(actions_1_r_n - states_r_n) % self.n_action, u]
             rew_2_r_n = self.rew_mdl[(actions_2_r_n - states_r_n) % self.n_action, u]
+            prob_r_n = self.pref_mdl(rew_2_r_n - rew_1_r_n)
+
+            prob_nl.append((prob_l_n * prob_r_n).view(-1, 1))
+
+        prob_nl = torch.concat(prob_nl, dim=1)
+        prob_n = torch.matmul(prob_nl, latent_probs.view(-1, 1))
+
+        return prob_n, prob_nl
+
+
+class VerySpecialJointLikelihoodModel(nn.Module):
+    def __init__(self, n_state: int, n_action: int, n_layer: int, size: int, latent_dim: int):
+        super().__init__()
+
+        self.n_state = n_state
+        self.n_action = n_action
+        self.latent_dim = latent_dim
+
+        self.rew_mdl = nn.Parameter(
+            torch.randn((self.n_state, self.n_action, self.latent_dim,), device=ptu.device),
+            requires_grad=True,
+        )
+
+        self.pref_mdl = nn.functional.sigmoid
+
+        self.latent_logits = nn.Parameter(torch.zeros((self.latent_dim,), device=ptu.device), requires_grad=True)
+
+    @staticmethod
+    def calc_latent_disc_loss():
+        return 0.
+
+    def forward(
+            self,
+            states_l_n,
+            actions_1_l_n,
+            actions_2_l_n,
+            states_r_n,
+            actions_1_r_n,
+            actions_2_r_n,
+    ):
+        latent_probs = torch.softmax(self.latent_logits, dim=0)
+
+        prob_nl = []
+        for u in range(self.latent_dim):
+            rew_1_l_n = self.rew_mdl[states_l_n, actions_1_l_n, u]
+            rew_2_l_n = self.rew_mdl[states_l_n, actions_2_l_n, u]
+            prob_l_n = self.pref_mdl(rew_2_l_n - rew_1_l_n)
+
+            rew_1_r_n = self.rew_mdl[states_r_n, actions_1_r_n, u]
+            rew_2_r_n = self.rew_mdl[states_r_n, actions_2_r_n, u]
             prob_r_n = self.pref_mdl(rew_2_r_n - rew_1_r_n)
 
             prob_nl.append((prob_l_n * prob_r_n).view(-1, 1))
