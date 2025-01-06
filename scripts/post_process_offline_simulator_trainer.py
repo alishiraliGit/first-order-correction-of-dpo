@@ -29,6 +29,7 @@ if __name__ == '__main__':
     log_dir = os.path.join('..', 'data', exp_name)
     figs_dir = os.path.join('..', 'figs')
 
+    plot_rewards = True
     save_figs = False
 
     # ===== Load =====
@@ -86,5 +87,30 @@ if __name__ == '__main__':
 
     if save_figs:
         plt.savefig(os.path.join(figs_dir, f'aligned_policy_{exp_name}.pdf'))
+
+    plt.show()
+
+    # ===== Visualize rewards =====
+    plt.figure(figsize=(4, 3))
+
+    d = torch.arange(-(n_action // 2), -(n_action // 2) + n_action)
+
+    env.update_state(0)
+
+    for e in env.envs:
+        rew = e.reward(d)
+
+        plt.plot(d, rew, label=r'$u = %g$' % e.shift)
+
+    plt.plot(d, env.reward(d), 'k--', label=r'$\mathbb{E}[r]$')
+
+    plt.legend(loc='upper center')
+    plt.ylabel(r'$r(\delta; u)$')
+    plt.xlabel(r'$\delta$')
+
+    plt.tight_layout()
+
+    if save_figs:
+        plt.savefig(os.path.join(figs_dir, f'rewards_{exp_name}.pdf'))
 
     plt.show()
