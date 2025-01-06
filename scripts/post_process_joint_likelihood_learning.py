@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from utils.load_and_save_utils import load_class
+from envs.discrete_env import DiscreteMultiShiftedProximityEnv
 
 
 def sigmoid(x):
@@ -12,14 +13,22 @@ def sigmoid(x):
 
 if __name__ == '__main__':
     # ===== Settings =====
-    opt_shifts = [-1, 1]
-    decay_rate = 0.5
-    correction_var = 0.
+    env = DiscreteMultiShiftedProximityEnv(
+        n_state=20,
+        n_action=20,
+        shifts=[-5, 0, 5],
+        decay_func='linear',
+        decay_rates=[0.15, 0.2, 0.15],
+        rew_scales=[4, 1.5, 4],
+    )
 
-    exp_name = f'offline_size100000_' \
-               f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
-               f'decay{"%g" % decay_rate}_' \
-               f'ceestvar4corrected{"%g" % correction_var}'
+    exp_name = \
+        f'offline_size300000_' \
+        f'{env.n_state}s{env.n_action}a_' \
+        f'shifts{"_".join(["%g" % s for s in env.shifts])}_' \
+        f'decay{env.decay_func_str}{"_".join(["%g" % dr for dr in env.decay_rates])}_' \
+        f'rscale{"_".join(["%g" % rs for rs in env.rew_scales])}_' \
+        f'estvarcorrecteddpo_varmult1'
 
     log_dir = os.path.join('..', 'data', exp_name)
     figs_dir = os.path.join('..', 'figs')
@@ -66,13 +75,15 @@ if __name__ == '__main__':
 
     aligned_a = np.mean(aligned_sa, axis=0)
 
-    d = np.arange(-(n_state // 2), -(n_state // 2) + n_state)
+    d = torch.arange(-(n_action // 2), -(n_action // 2) + n_action)
 
-    dist_f = lambda a, shift: np.minimum((a - shift) % n_state, (shift - a) % n_state)
-    opt_a = np.zeros((n_action,))
+    opt_a = torch.zeros((n_action,))
 
-    for s in opt_shifts:
-        opt_a += 1/len(opt_shifts) * sigmoid(decay_rate**dist_f(d, s) - decay_rate**dist_f(0, s))**2
+    env.update_state(0)
+    for e in env.envs:
+        opt_a += 1/len(env.envs) * sigmoid(e.reward(d) - e.reward(torch.tensor(0)))**2
+
+    opt_a = opt_a.numpy()
 
     plt.plot(d, opt_a, 'k--')
     plt.plot(d, aligned_a, 'b')

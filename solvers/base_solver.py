@@ -11,6 +11,9 @@ class BaseSolver(abc.ABC):
         self.policy = policy
         self.ref_policy = ref_policy
 
+    def __str__(self):
+        return self.__class__.__name__.lower()
+
     @abc.abstractmethod
     def update(
             self,

@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 from scipy.ndimage import gaussian_filter1d
 import tensorflow as tf
 
+from envs.discrete_env import DiscreteMultiShiftedProximityEnv
+
 
 def get_section_tags(file):
     all_tags = set()
@@ -28,14 +30,22 @@ def get_section_results(file, tags):
 
 if __name__ == '__main__':
     # ===== Settings =====
-    opt_shifts = [-1, 1]
-    decay_rate = 0.5
-    correction_var = 0.
+    env = DiscreteMultiShiftedProximityEnv(
+        n_state=20,
+        n_action=20,
+        shifts=[-5, 0, 5],
+        decay_func='linear',
+        decay_rates=[0.15, 0.2, 0.15],
+        rew_scales=[4, 1.5, 4],
+    )
 
-    exp_name = f'offline_size100000_' \
-               f'shifts{"_".join(["%g" % s for s in opt_shifts])}_' \
-               f'decay{"%g" % decay_rate}_' \
-               f'ceestvar4corrected{"%g" % correction_var}'
+    exp_name = \
+        f'offline_size300000_' \
+        f'{env.n_state}s{env.n_action}a_' \
+        f'shifts{"_".join(["%g" % s for s in env.shifts])}_' \
+        f'decay{env.decay_func_str}{"_".join(["%g" % dr for dr in env.decay_rates])}_' \
+        f'rscale{"_".join(["%g" % rs for rs in env.rew_scales])}_' \
+        f'dpo'
 
     log_dir = os.path.join('..', 'data', exp_name)
 
