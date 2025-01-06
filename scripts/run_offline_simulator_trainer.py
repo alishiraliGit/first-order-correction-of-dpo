@@ -7,6 +7,7 @@ from policies.ordinal_policy import OrdinalPolicy
 from policies.ref_policy import UniformPolicy
 from solvers.dpo import DPO
 from solvers.corrected_dpo import CorrectedDPO, EstVarCorrectedDPO
+from solvers.shirali_et_al import ShiraliEtAl
 from solvers.nbc import NBC
 from trainers.simulator_trainer import OfflineSimulatorTrainer
 from utils.logger import Logger
@@ -18,24 +19,25 @@ if __name__ == '__main__':
     # GPU
     init_gpu()
 
+    # Solver class
+    solver_class = ShiraliEtAl
+
     # Env
     env = DiscreteMultiShiftedProximityEnv(
-        n_state=20,
-        n_action=20,
-        shifts=[-5, 0, 5],
+        n_state=40,
+        n_action=40,
+        shifts=[-10, 0, 10],
         decay_func='linear',
-        decay_rates=[0.15, 0.2, 0.15],
+        decay_rates=[0.075, 0.1, 0.075],
         rew_scales=[4, 1.5, 4],
+        output_all=(solver_class == ShiraliEtAl),
     )
 
     # Preference
     pref_mdl = BradleyTerry()
 
-    # Solver class
-    solver_class = DPO
-
     # Polices
-    if solver_class in (DPO, CorrectedDPO, EstVarCorrectedDPO):
+    if solver_class in (DPO, CorrectedDPO, EstVarCorrectedDPO, ShiraliEtAl):
         pi = DiscreteMLPPolicy(
             n_state=env.n_state,
             n_action=env.n_action,
@@ -97,12 +99,20 @@ if __name__ == '__main__':
             ref_policy=ref_pi,
         )
 
+    elif solver_class == ShiraliEtAl:
+        solver = ShiraliEtAl(
+            policy=pi,
+            ref_policy=ref_pi,
+            beta=1.,
+            lr=1e-3,
+        )
+
     else:
         raise NotImplementedError
 
     # Logger
     exp_name = \
-        f'offline_size300000_' \
+        f'offline_size500000_' \
         f'{env.n_state}s{env.n_action}a_' \
         f'shifts{"_".join(["%g" % s for s in env.shifts])}_' \
         f'decay{env.decay_func_str}{"_".join(["%g" % dr for dr in env.decay_rates])}_' \
@@ -120,12 +130,12 @@ if __name__ == '__main__':
         preference_model=pref_mdl,
         solver=solver,
         logger=logger,
-        dataset_size=300000,
+        dataset_size=500000,
         batch_size=1024,
     )
 
     # ===== Train =====
-    if solver_class in (DPO, CorrectedDPO, EstVarCorrectedDPO):
+    if solver_class in (DPO, CorrectedDPO, EstVarCorrectedDPO, ShiraliEtAl):
         n_step = 10000
     elif solver_class == NBC:
         n_step = 100000

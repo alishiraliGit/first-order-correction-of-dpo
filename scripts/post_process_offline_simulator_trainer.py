@@ -10,16 +10,16 @@ from envs.discrete_env import DiscreteMultiShiftedProximityEnv
 if __name__ == '__main__':
     # ===== Settings =====
     env = DiscreteMultiShiftedProximityEnv(
-        n_state=20,
-        n_action=20,
-        shifts=[-5, 0, 5],
+        n_state=40,
+        n_action=40,
+        shifts=[-10, 0, 10],
         decay_func='linear',
-        decay_rates=[0.15, 0.2, 0.15],
+        decay_rates=[0.075, 0.1, 0.075],
         rew_scales=[4, 1.5, 4],
     )
 
     exp_name = \
-        f'offline_size300000_' \
+        f'offline_size500000_' \
         f'{env.n_state}s{env.n_action}a_' \
         f'shifts{"_".join(["%g" % s for s in env.shifts])}_' \
         f'decay{env.decay_func_str}{"_".join(["%g" % dr for dr in env.decay_rates])}_' \

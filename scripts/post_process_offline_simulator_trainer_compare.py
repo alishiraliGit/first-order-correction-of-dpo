@@ -10,18 +10,18 @@ from envs.discrete_env import DiscreteMultiShiftedProximityEnv
 if __name__ == '__main__':
     # ===== Settings =====
     env = DiscreteMultiShiftedProximityEnv(
-        n_state=20,
-        n_action=20,
-        shifts=[-5, 0, 5],
+        n_state=40,
+        n_action=40,
+        shifts=[-10, 0, 10],
         decay_func='linear',
-        decay_rates=[0.15, 0.2, 0.15],
+        decay_rates=[0.075, 0.1, 0.075],
         rew_scales=[4, 1.5, 4],
     )
 
     correction_vars = [1, 2]
 
     common_exp_name = \
-        f'offline_size300000_' \
+        f'offline_size500000_' \
         f'{env.n_state}s{env.n_action}a_' \
         f'shifts{"_".join(["%g" % s for s in env.shifts])}_' \
         f'decay{env.decay_func_str}{"_".join(["%g" % dr for dr in env.decay_rates])}_' \
@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
     plt.plot(d, opt_a, 'k--', label=legends[0])
 
-    cl = lambda i: [(i + 0.5)/len(solvers), 0, (1 - (i + 0.5)/len(solvers))]
+    cl = lambda i: [i/(len(solvers) - 1), 0, (1 - i/(len(solvers) - 1))]
 
     for idx in range(len(postfixes)):
         probs_sa = np.zeros((n_state, n_action))

@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from envs.base_env import BaseEnv
 from utils.lookups import name_to_distribution
+from utils import pytorch_utils as ptu
 
 
 class DecayFunc:
@@ -104,6 +105,7 @@ class DiscreteMultiShiftedProximityEnv(BaseEnv):
             decay_func: str,
             decay_rates: Union[float, List[float]],
             rew_scales: Union[float, List[float]],
+            output_all=False,
     ):
         super().__init__(prior='categorical', prior_params={'probs': torch.ones((n_state,))})
 
@@ -118,6 +120,7 @@ class DiscreteMultiShiftedProximityEnv(BaseEnv):
         self.decay_func_str = decay_func
         self.decay_rates = decay_rates
         self.rew_scales = rew_scales
+        self.output_all = output_all
 
         self.envs = []
         for shift, decay_rate, rew_scale in zip(shifts, decay_rates, rew_scales):
@@ -132,6 +135,7 @@ class DiscreteMultiShiftedProximityEnv(BaseEnv):
             self.envs.append(env)
 
         self.state = self.envs[0].state
+        self.update_state(self.state)
         self.env_prior = name_to_distribution('categorical')(probs=torch.ones((len(shifts),)))
 
     def update_state(self, state):
@@ -148,27 +152,53 @@ class DiscreteMultiShiftedProximityEnv(BaseEnv):
         return mean_rew
 
     def step(self, actions_n: torch.Tensor, fix_state_between_actions: bool):
-        # A fixed env will be used for every call
-        idx = self.env_prior.sample().item()
-        env = self.envs[idx]
+        if not self.output_all:
+            # An env will be sampled and used for each call
+            idx = self.env_prior.sample().item()
+            env = self.envs[idx]
 
-        step_output = env.step(actions_n, fix_state_between_actions)
+            step_output = env.step(actions_n, fix_state_between_actions)
 
-        self.update_state(env.state)
+            self.update_state(env.state)
+
+        else:
+            if actions_n.ndim == 0:
+                actions_n = actions_n.unsqueeze(-1)
+
+            n = len(actions_n)
+            e = len(self.envs)
+
+            states_n, rews_0_n, shifts_0_n = self.envs[0].step(actions_n, fix_state_between_actions)
+
+            rews_ne = torch.zeros((n, e), dtype=rews_0_n.dtype).to(ptu.device)
+            shifts_ne = torch.zeros((n, e), dtype=shifts_0_n.dtype).to(ptu.device)
+
+            for idx, state, action, rew_0, shift_0 in zip(range(n), states_n, actions_n, rews_0_n, shifts_0_n):
+                rews_ne[idx, 0] = rew_0
+                shifts_ne[idx, 0] = shift_0
+                for i_e, env in enumerate(self.envs[1:]):
+                    env.state = state
+                    _, rew_i, shift_i = env.step(action, fix_state_between_actions)
+                    rews_ne[idx, i_e + 1] = rew_i
+                    shifts_ne[idx, i_e + 1] = shift_i
+
+            self.update_state(self.envs[0].state)
+
+            step_output = states_n, rews_ne, shifts_ne
 
         return step_output
 
 
-if __name__ == '__main__':
+def plot_sample_env_rew():
     # For debugging
-    e = DiscreteMultiShiftedProximityEnv(1, 40, [-10, 0, 10], 'quadratic', [0.0075, 0.01, 0.0075], [4, 1, 4])
-    rew_sa = torch.zeros((e.n_state, e.n_action))
-    cnt_sa = torch.zeros((e.n_state, e.n_action))
-    ac_dist = torch.distributions.Categorical(probs=torch.ones((e.n_action,)))
+    envi = DiscreteMultiShiftedProximityEnv(1, 40, [-10, 0, 10], 'quadratic', [0.0075, 0.01, 0.0075], [4, 1, 4])
+    rew_sa = torch.zeros((envi.n_state, envi.n_action))
+    cnt_sa = torch.zeros((envi.n_state, envi.n_action))
+    ac_dist = torch.distributions.Categorical(probs=torch.ones((envi.n_action,)))
 
     for _ in tqdm(range(30000)):
         a = ac_dist.sample()
-        s, r, _ = e.step(a, fix_state_between_actions=True)
+        s, r, _ = envi.step(a, fix_state_between_actions=True)
         s, r = s[0], r[0]
 
         cnt_sa[s, a] += 1
@@ -184,3 +214,40 @@ if __name__ == '__main__':
     plt.figure()
     plt.plot(rew_sa[0])
     plt.show()
+
+
+def plot_sample_env_output_all_rew():
+    # For debugging
+    envi = DiscreteMultiShiftedProximityEnv(8, 8, [-2, 2], 'exponential', [0.8, 0.8], [1, 1], output_all=True)
+    rew_sae = torch.zeros((envi.n_state, envi.n_action, len(envi.envs)))
+    cnt_sa = torch.zeros((envi.n_state, envi.n_action))
+    ac_dist = torch.distributions.Categorical(probs=torch.ones((envi.n_action,)))
+
+    for _ in tqdm(range(30000)):
+        a = ac_dist.sample()
+        s, r, _ = envi.step(a, fix_state_between_actions=True)
+        s, r = s[0], r[0]
+
+        cnt_sa[s, a] += 1
+        rew_sae[s, a] += r
+
+    rew_sae = rew_sae / cnt_sa.unsqueeze(2)
+
+    plt.figure()
+    plt.imshow(rew_sae[:, :, 0])
+    plt.colorbar()
+    plt.show()
+
+    plt.figure()
+    plt.imshow(rew_sae[:, :, 1])
+    plt.colorbar()
+    plt.show()
+
+    plt.figure()
+    for i_envi in range(len(envi.envs)):
+        plt.plot(rew_sae[0, :, i_envi])
+    plt.show()
+
+
+if __name__ == '__main__':
+    plot_sample_env_output_all_rew()

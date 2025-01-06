@@ -41,6 +41,13 @@ class BaseSimulatorTrainer(abc.ABC):
 
             prefs = self.preference_model.sample(rews[0:1], rews[1:2])
 
+            if prefs.ndim > prefs_n.ndim:
+                e = prefs.shape[1]
+                prefs_n = torch.zeros((n, e), dtype=torch.long)
+            if us.ndim > us_n.ndim:
+                e = us.shape[1]
+                us_n = torch.zeros((n, e), dtype=torch.long)
+
             # Store
             states_n[i] = states[0]
             actions_1_n[i] = actions[0]
