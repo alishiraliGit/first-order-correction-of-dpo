@@ -2,9 +2,12 @@ import os
 import torch
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator, FuncFormatter
 
 from utils.load_and_save_utils import load_class
 from envs.discrete_env import DiscreteMultiShiftedProximityEnv
+from utils.theory import calc_nbc
+from utils import consistent_plotting as cp
 
 
 if __name__ == '__main__':
@@ -28,7 +31,7 @@ if __name__ == '__main__':
         f'rscale{"_".join(["%g" % rs for rs in env.rew_scales])}'
 
     postfixes = ['dpo'] + [f'estvarcorrecteddpo_varmult{"%g" % c_var}' for c_var in correction_vars]
-    legends = ['OPT', 'DPO'] + [r'DPO($\alpha$=%g)' % c_var for c_var in correction_vars]
+    legends = [r'$\pi^*$', r'$\pi_{\rm DPO}$'] + [r'$\pi_{{\rm DPO}(\alpha=%g)}$' % c_var for c_var in correction_vars]
     assert len(legends) == len(postfixes) + 1
 
     exp_names = [common_exp_name + '_' + postfix for postfix in postfixes]
@@ -36,6 +39,7 @@ if __name__ == '__main__':
     log_dirs = [os.path.join('..', 'data', exp_name) for exp_name in exp_names]
     figs_dir = os.path.join('..', 'figs')
 
+    plot_nbc = False
     save_figs = False
 
     # ===== Load =====
@@ -51,12 +55,28 @@ if __name__ == '__main__':
     opt_a = torch.exp(env.reward(d) / beta).numpy()
     opt_a /= opt_a.sum()
 
+    fig = cp.figure()
+
+    ax1 = fig.add_subplot(111)
+    ax1.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.3f}'))
+    ax1.yaxis.set_major_locator(MaxNLocator(nbins=4))
+
+    ax1.plot(d, opt_a, 'k--', label=legends[0])
+
+    # ===== Calc. NBC =====
+    if plot_nbc:
+        nbc_sa = calc_nbc(env, solvers[0])
+        nbc_a = nbc_sa[-(n_action // 2), :]
+
+        ax2 = ax1.twinx()
+        ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.2f}'))
+        ax2.yaxis.set_major_locator(MaxNLocator(nbins=4))
+
+        ax2.plot(d, nbc_a, '-.', color='c', label='NBC', zorder=-1)
+        ax2.set_ylabel('NBC')
+
     # ===== Eval. policy =====
-    plt.figure(figsize=(4, 3))
-
-    plt.plot(d, opt_a, 'k--', label=legends[0])
-
-    cl = lambda i: [i/(len(solvers) - 1), 0, (1 - i/(len(solvers) - 1))]
+    cl = lambda i: [i/(len(solvers) - 1), 0, (1 - i/(len(solvers) - 1))] if len(solvers) > 1 else 'b'
 
     for idx in range(len(postfixes)):
         probs_sa = np.zeros((n_state, n_action))
@@ -75,16 +95,27 @@ if __name__ == '__main__':
         else:
             aligned_se_a = 0.
 
-        plt.fill_between(d, aligned_a - aligned_se_a, aligned_a + aligned_se_a, color=cl(idx), alpha=0.1)
-        plt.plot(d, aligned_a, color=cl(idx), label=legends[idx + 1])
+        ax1.fill_between(d, aligned_a - aligned_se_a, aligned_a + aligned_se_a, color=cl(idx), alpha=0.1)
+        ax1.plot(d, aligned_a, color=cl(idx), label=legends[idx + 1])
 
-    plt.legend(loc='lower center')
-    plt.ylabel(r'$\pi(\delta)$')
-    plt.xlabel(r'$\delta$')
+    # ax1.legend(loc='lower center')
+    ax1.set_ylabel(r'$\pi(\delta)$')
+    ax1.set_xlabel(r'$\delta$')
 
-    plt.tight_layout()
+    handles, labels = ax1.get_legend_handles_labels()
+    if plot_nbc:
+        # noinspection PyUnboundLocalVariable
+        handles2, labels2 = ax2.get_legend_handles_labels()
+        handles += handles2
+        labels += labels2
+    plt.legend(handles=handles, labels=labels, loc='lower center', ncol=1)
+
+    cp.subplots_adjust()
 
     if save_figs:
-        plt.savefig(os.path.join(figs_dir, f'aligned_policy_comparison_{common_exp_name}_{"_".join(postfixes)}.pdf'))
+        plt.savefig(os.path.join(
+            figs_dir,
+            f'aligned_policy_comparison_{common_exp_name}_{"_".join(postfixes)}{"_nbc" if plot_nbc else ""}.pdf'
+        ))
 
     plt.show()

@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 from utils.load_and_save_utils import load_class
 from envs.discrete_env import DiscreteMultiShiftedProximityEnv
+from utils import consistent_plotting as cp
 
 
 if __name__ == '__main__':
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     plt.show()
 
     # Vector
-    plt.figure(figsize=(4, 3))
+    cp.figure()
 
     aligned_sa = probs_sa.copy()
     for state in range(n_state):
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     plt.ylabel(r'$\pi(\delta)$')
     plt.xlabel(r'$\delta$')
 
-    plt.tight_layout()
+    cp.subplots_adjust()
 
     if save_figs:
         plt.savefig(os.path.join(figs_dir, f'aligned_policy_{exp_name}.pdf'))
@@ -91,16 +92,18 @@ if __name__ == '__main__':
     plt.show()
 
     # ===== Visualize rewards =====
-    plt.figure(figsize=(4, 3))
+    cp.figure()
+
+    cmap = plt.cm.plasma
 
     d = torch.arange(-(n_action // 2), -(n_action // 2) + n_action)
 
+    cl = lambda i: cmap((i + 0.5)/len(env.envs))
     env.update_state(0)
-
-    for e in env.envs:
+    for i_e, e in enumerate(env.envs):
         rew = e.reward(d)
 
-        plt.plot(d, rew, label=r'$u = %g$' % e.shift)
+        plt.plot(d, rew, color=cl(i_e), label=r'$u = %g$' % e.shift)
 
     plt.plot(d, env.reward(d), 'k--', label=r'$\mathbb{E}[r]$')
 
@@ -108,7 +111,7 @@ if __name__ == '__main__':
     plt.ylabel(r'$r(\delta; u)$')
     plt.xlabel(r'$\delta$')
 
-    plt.tight_layout()
+    cp.subplots_adjust()
 
     if save_figs:
         plt.savefig(os.path.join(figs_dir, f'rewards_{exp_name}.pdf'))
