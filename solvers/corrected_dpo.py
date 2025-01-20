@@ -323,6 +323,11 @@ class EstVarCorrectedDPO(DPO):
 
             var_sigmoid_n = torch.clamp(a_n - (a_n + b_n)**2, min=0.)
 
+            # Derivation:
+            # var_n = var_sigmoid_n / (sigmoid_n * (1 - sigmoid_n))**2
+            # sigmoid'' = sigmoid_n * (1 - sigmoid_n) * (1 - 2*sigmoid_n)
+            # correction_n = 0.5 * var_n * sigmoid''
+
             correction_n = 0.5 * (1 - 2*sigmoid_n) * var_sigmoid_n / sigmoid_n / (1 - sigmoid_n)
 
         else:

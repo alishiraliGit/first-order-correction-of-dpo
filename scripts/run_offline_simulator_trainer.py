@@ -105,6 +105,7 @@ if __name__ == '__main__':
             ref_policy=ref_pi,
             beta=1.,
             lr=1e-3,
+            method=2,
         )
 
     else:

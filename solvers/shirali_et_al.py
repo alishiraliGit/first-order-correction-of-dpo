@@ -13,6 +13,7 @@ class ShiraliEtAl(DPO):
             ref_policy: BasePolicy,
             beta: float,
             lr: float,
+            method: int = 2,
     ):
         super().__init__(policy, ref_policy, beta, lr)
 
@@ -20,6 +21,8 @@ class ShiraliEtAl(DPO):
 
         self.lr = lr
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=self.lr)
+
+        self.method = method  # 1: Use i_func, 2: Use temp-adjusted DPO
 
     @staticmethod
     def i_func(k):
@@ -53,13 +56,22 @@ class ShiraliEtAl(DPO):
         # Calc. h
         n, e = prefs_n.shape
         pseudo_prefs_n = torch.ones((n,), dtype=prefs_n.dtype).to(ptu.device)
-        h_n = self.calc_likelihood(states_n, actions_1_n, actions_2_n, pseudo_prefs_n)
+        s_n = self.calc_likelihood(states_n, actions_1_n, actions_2_n, pseudo_prefs_n)
 
         # Calc. loss
-        i_func = self.i_func(e)
-        loss = \
-            - prefs_n.prod(dim=1) * (h_n + i_func(h_n)) \
-            - (1 - prefs_n).prod(dim=1) * (-h_n + i_func(1 - h_n))
+        if self.method == 1:
+            i_func = self.i_func(e)
+            loss = \
+                - prefs_n.prod(dim=1) * (s_n + i_func(s_n)) \
+                - (1 - prefs_n).prod(dim=1) * (1 - s_n + i_func(1 - s_n))
+        elif self.method == 2:
+            h_n = torch.logit(s_n)
+            loss = \
+                - prefs_n.prod(dim=1) * torch.log(torch.sigmoid(e * h_n)) \
+                - (1 - prefs_n).prod(dim=1) * torch.log(torch.sigmoid(e * (1 - h_n)))
+        else:
+            raise NotImplementedError
+
         loss = loss.mean()
 
         # Step the optimizer
