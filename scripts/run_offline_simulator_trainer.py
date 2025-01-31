@@ -7,7 +7,7 @@ from policies.ordinal_policy import OrdinalPolicy
 from policies.ref_policy import UniformPolicy
 from solvers.dpo import DPO
 from solvers.corrected_dpo import CorrectedDPO, EstVarCorrectedDPO
-from solvers.shirali_et_al import ShiraliEtAl
+from solvers.consistent import Consistent
 from solvers.nbc import NBC
 from trainers.simulator_trainer import OfflineSimulatorTrainer
 from utils.logger import Logger
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     init_gpu()
 
     # Solver class
-    solver_class = ShiraliEtAl
+    solver_class = Consistent
 
     # Env
     env = DiscreteMultiShiftedProximityEnv(
@@ -30,14 +30,14 @@ if __name__ == '__main__':
         decay_func='linear',
         decay_rates=[0.075, 0.1, 0.075],
         rew_scales=[4, 1.5, 4],
-        output_all=(solver_class == ShiraliEtAl),
+        output_all=(solver_class == Consistent),
     )
 
     # Preference
     pref_mdl = BradleyTerry()
 
     # Polices
-    if solver_class in (DPO, CorrectedDPO, EstVarCorrectedDPO, ShiraliEtAl):
+    if solver_class in (DPO, CorrectedDPO, EstVarCorrectedDPO, Consistent):
         pi = DiscreteMLPPolicy(
             n_state=env.n_state,
             n_action=env.n_action,
@@ -99,8 +99,8 @@ if __name__ == '__main__':
             ref_policy=ref_pi,
         )
 
-    elif solver_class == ShiraliEtAl:
-        solver = ShiraliEtAl(
+    elif solver_class == Consistent:
+        solver = Consistent(
             policy=pi,
             ref_policy=ref_pi,
             beta=1.,
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     )
 
     # ===== Train =====
-    if solver_class in (DPO, CorrectedDPO, EstVarCorrectedDPO, ShiraliEtAl):
+    if solver_class in (DPO, CorrectedDPO, EstVarCorrectedDPO, Consistent):
         n_step = 10000
     elif solver_class == NBC:
         n_step = 100000

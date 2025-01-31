@@ -6,7 +6,7 @@ from solvers.dpo import DPO
 from utils import pytorch_utils as ptu
 
 
-class ShiraliEtAl(DPO):
+class Consistent(DPO):
     def __init__(
             self,
             policy: BasePolicy,

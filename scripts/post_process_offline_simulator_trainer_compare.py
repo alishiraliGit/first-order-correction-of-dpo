@@ -2,7 +2,7 @@ import os
 import torch
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.ticker import MaxNLocator, MultipleLocator, AutoLocator, FuncFormatter
+from matplotlib.ticker import MaxNLocator, MultipleLocator, FuncFormatter
 
 from utils.load_and_save_utils import load_class
 from envs.discrete_env import DiscreteMultiShiftedProximityEnv
