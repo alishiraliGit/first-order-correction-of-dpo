@@ -2,7 +2,7 @@ import os
 import torch
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.ticker import MaxNLocator, FuncFormatter
+from matplotlib.ticker import MaxNLocator, MultipleLocator, AutoLocator, FuncFormatter
 
 from utils.load_and_save_utils import load_class
 from envs.discrete_env import DiscreteMultiShiftedProximityEnv
@@ -58,8 +58,8 @@ if __name__ == '__main__':
     fig = cp.figure()
 
     ax1 = fig.add_subplot(111)
-    ax1.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.3f}'))
-    ax1.yaxis.set_major_locator(MaxNLocator(nbins=4))
+    ax1.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.2f}'))
+    ax1.yaxis.set_major_locator(MaxNLocator(nbins=2))
 
     ax1.plot(d, opt_a, 'k--', label=legends[0])
 
@@ -69,11 +69,11 @@ if __name__ == '__main__':
         nbc_a = nbc_sa[-(n_action // 2), :]
 
         ax2 = ax1.twinx()
-        ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.2f}'))
-        ax2.yaxis.set_major_locator(MaxNLocator(nbins=4))
+        ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.1g}'))
+        ax2.yaxis.set_major_locator(MultipleLocator(0.09))
 
         ax2.plot(d, nbc_a, '-.', color='c', label='NBC', zorder=-1)
-        ax2.set_ylabel('NBC')
+        ax2.set_ylabel(r'NBC($\delta$)')
 
     # ===== Eval. policy =====
     cl = lambda i: [i/(len(solvers) - 1), 0, (1 - i/(len(solvers) - 1))] if len(solvers) > 1 else 'b'
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         handles2, labels2 = ax2.get_legend_handles_labels()
         handles += handles2
         labels += labels2
-    plt.legend(handles=handles, labels=labels, loc='lower center', ncol=1)
+    plt.legend(handles=handles, labels=labels, loc='lower center', ncol=2)
 
     cp.subplots_adjust()
 

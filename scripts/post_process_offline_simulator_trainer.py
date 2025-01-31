@@ -31,7 +31,7 @@ if __name__ == '__main__':
     figs_dir = os.path.join('..', 'figs')
 
     plot_rewards = True
-    save_figs = False
+    save_figs = True
 
     # ===== Load =====
     solver = load_class(os.path.join(log_dir, 'solvers')).load(log_dir)
@@ -89,31 +89,30 @@ if __name__ == '__main__':
     if save_figs:
         plt.savefig(os.path.join(figs_dir, f'aligned_policy_{exp_name}.pdf'))
 
-    plt.show()
-
     # ===== Visualize rewards =====
-    cp.figure()
+    if plot_rewards:
+        cp.figure()
 
-    cmap = plt.cm.plasma
+        cmap = plt.cm.plasma
 
-    d = torch.arange(-(n_action // 2), -(n_action // 2) + n_action)
+        d = torch.arange(-(n_action // 2), -(n_action // 2) + n_action)
 
-    cl = lambda i: cmap((i + 0.5)/len(env.envs))
-    env.update_state(0)
-    for i_e, e in enumerate(env.envs):
-        rew = e.reward(d)
+        cl = lambda i: cmap((i + 0.5)/len(env.envs))
+        env.update_state(0)
+        for i_e, e in enumerate(env.envs):
+            rew = e.reward(d)
 
-        plt.plot(d, rew, color=cl(i_e), label=r'$u = %g$' % e.shift)
+            plt.plot(d, rew, color=cl(i_e), label=r'$u = %g$' % e.shift)
 
-    plt.plot(d, env.reward(d), 'k--', label=r'$\mathbb{E}[r]$')
+        plt.plot(d, env.reward(d), 'k--', label=r'$\mathbb{E}[r^*]$')
 
-    plt.legend(loc='upper center')
-    plt.ylabel(r'$r(\delta; u)$')
-    plt.xlabel(r'$\delta$')
+        plt.legend(loc='upper center', ncol=2)
+        plt.ylabel(r'$r^*(\delta; u)$')
+        plt.xlabel(r'$\delta$')
 
-    cp.subplots_adjust()
+        cp.subplots_adjust()
 
-    if save_figs:
-        plt.savefig(os.path.join(figs_dir, f'rewards_{exp_name}.pdf'))
+        if save_figs:
+            plt.savefig(os.path.join(figs_dir, f'rewards_{exp_name}.pdf'))
 
-    plt.show()
+        plt.show()
